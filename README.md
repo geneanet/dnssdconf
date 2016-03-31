@@ -8,6 +8,18 @@ Thus, adding or removing a server in a cluster is as simple as changing one DNS 
 
 Adding dnssdconf in a crontab run every minute will ensure that your configuration files are always up to date.
 
+### Table of contents
+
+<!-- TOC depthFrom:2 depthTo:2 withLinks:1 updateOnSave:1 orderedList:0 -->
+
+- [Usage](#usage)
+- [Config file](#config-file)
+- [Templates](#templates)
+- [DNS-SD records](#dns-sd-records)
+- [Dependencies](#dependencies)
+
+<!-- /TOC -->
+
 ## Usage
 __dnssdconf__ [--logfile LOGFILE] [--loglevel {debug,info,warning,error,critical,fatal}] [--logconfig LOGCONFIG] [--config CONFIG] [--templatesdir TEMPLATESDIR] [--diff]
 
