@@ -66,7 +66,7 @@ def generate_config(instances, template):
     instances_data = {}
 
     # Get instances data (servers, config)
-    for (service, name) in instances.iteritems():
+    for (service, name) in instances.items():
         try:
             instances_data[service] = get_instance(name)
         except Exception:
@@ -131,7 +131,7 @@ def run():
         exit(1)
 
     # For each config to generate
-    for (item, value) in local_config.iteritems():
+    for (item, value) in local_config.items():
         try:
             logger.debug("Generating conf for %s", item)
 
@@ -168,7 +168,7 @@ def run():
                     logger.info("Running command: %s", value['exec'])
                     subprocess.call(value['exec'], shell=True)
 
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
 if __name__ == '__main__':
