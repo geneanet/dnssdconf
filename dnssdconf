@@ -1,0 +1,175 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import dns.resolver
+import yaml
+import logging
+import subprocess
+import argparse
+import dns.exception
+from operator import attrgetter
+from mako.template import Template
+from collections import namedtuple
+from difflib import unified_diff
+
+logger = logging.getLogger('dnssdconf')
+
+
+def get_instance(instance):
+    """ Return the instance of a given service, identified by its DNS adress <instance>.<service>.<domain>. """
+    Instance = namedtuple('Instance', ['servers', 'config'])
+    Server = namedtuple('Server', ['port', 'priority', 'hostname', 'weight'])
+
+    try:
+        # Query DNS
+        try:
+            records_txt = dns.resolver.query(instance, 'TXT')
+        except dns.resolver.NoAnswer:
+            logger.warning('Query for domain %s did not return any TXT record', instance)
+
+        try:
+            records_srv = dns.resolver.query(instance, 'SRV')
+        except dns.resolver.NoAnswer:
+            logger.error('Query for domain %s did not return any SRV record', instance)
+            raise
+
+        # Convert TXT records to dictionary
+        config = {}
+        for record_txt in records_txt:
+            for item in record_txt.strings:
+                if '=' in item:
+                    (key, value) = item.split('=')
+                    config[key] = value
+                elif item:
+                    config[item] = True
+
+        # Convert SRV records to Server named tuples for an easier usage
+        servers = [Server(
+            port=rdata.port,
+            priority=rdata.priority,
+            hostname=str(rdata.target),
+            weight=rdata.weight
+        ) for rdata in records_srv]
+
+        # Sort records
+        servers = sorted(servers, key=attrgetter('hostname', 'priority', 'weight', 'port'))
+
+        return Instance(servers, config)
+    except dns.resolver.NXDOMAIN:
+        logger.error('Domain %s not found', instance)
+        raise
+
+
+def generate_config(instances, template):
+    """ Get services instances and render the template """
+
+    instances_data = {}
+
+    # Get instances data (servers, config)
+    for (service, name) in instances.iteritems():
+        try:
+            instances_data[service] = get_instance(name)
+        except Exception:
+            logger.error('Unable to get service %s instance(s)', service)
+            raise
+
+    # Load template
+    try:
+        tpl = Template(filename=template)
+    except Exception:
+        logger.error('Unable to load template %s', template)
+        raise
+
+    # Render template
+    try:
+        return tpl.render(**instances_data)
+    except Exception:
+        logger.error('Unable to render template %s', template)
+        raise
+
+
+def run():
+    """ Main function """
+
+    # Parse CLI args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
+    parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices=['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
+    parser.add_argument('--logconfig', nargs='?', default=None, help='Logging configuration file (overrides --loglevel and --logfile)')
+    parser.add_argument('--config', nargs='?', default='/etc/dnssdconf/dnssdconf.yml', help='Config file')
+    parser.add_argument('--templatesdir', nargs='?', default='/etc/dnssdconf/templates', help='Default templates dir')
+    parser.add_argument('--diff', dest='diff', default=False, action='store_true', help='Show diff when files are updates (loglevel info)')
+    args = parser.parse_args()
+
+    # Logging
+    if args.logfile:
+        logging.basicConfig(filename=args.logfile, format='%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(format='%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+
+    loglevel = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warning': logging.WARNING,
+        'error': logging.ERROR,
+        'critical': logging.CRITICAL,
+        'fatal': logging.FATAL
+    }[args.loglevel]
+
+    logger.setLevel(loglevel)
+
+    if args.logconfig:
+        logging.config.fileConfig(args.logconfig)
+
+    # Load config file
+    try:
+        with open(args.config, 'r') as f:
+            local_config = yaml.safe_load(f.read())
+    except Exception as e:
+        logger.error('Unable to read config file %s', args.config)
+        logger.exception(e)
+        exit(1)
+
+    # For each config to generate
+    for (item, value) in local_config.iteritems():
+        try:
+            logger.debug("Generating conf for %s", item)
+
+            # Generate the config from the template
+            if value['template'][0] == '/':
+                template = value['template']
+            else:
+                template = args.templatesdir + '/' + value['template']
+            conf_new = generate_config(value['service_instances'], template)
+
+            # Load the old config if it exists
+            try:
+                with open(value['output'], 'r') as f:
+                    conf_old = f.read()
+            except Exception:
+                logger.warning("Unable to read content of file %s", value['output'])
+                conf_old = ""
+
+            # Write new config if necessary
+            if conf_new == conf_old:
+                logger.debug("Nothing to change in file %s", value['output'])
+            else:
+                logger.info("Writing new version of file %s", value['output'])
+
+                if args.diff:
+                    diff = '\n'.join(unified_diff(conf_old.splitlines(), conf_new.splitlines(), lineterm='', fromfile=value['output'], tofile=value['output'] + '.new'))
+                    logger.info("Diff:\n%s", diff)
+
+                with open(value['output'], 'w') as f:
+                    f.write(conf_new)
+
+                # Execute callback
+                if 'exec' in value and value['exec']:
+                    logger.info("Running command: %s", value['exec'])
+                    subprocess.call(value['exec'], shell=True)
+
+        except Exception, e:
+            logger.exception(e)
+
+if __name__ == '__main__':
+    run()
