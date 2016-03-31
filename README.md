@@ -75,3 +75,12 @@ Example :
     web._http._tcp.mycompany.example.      IN      SRV     0       12      80      server1.mycompany.example.
     web._http._tcp.mycompany.example.      IN      SRV     0       27      80      server2.mycompany.example.
     web._http._tcp.mycompany.example.      IN      SRV     0       17      80      server3.mycompany.example.
+
+## Dependencies
+
+dnssdconf depends on the following python libraries :
+* __dnspython__ (http://www.dnspython.org/)
+* __mako__ (http://www.makotemplates.org/)
+* __pyyaml__ (http://pyyaml.org/)
+
+Under debian/ubuntu, they can be installed using the following packages : python-dnspython, python-mako and python-yaml.
