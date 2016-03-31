@@ -167,7 +167,9 @@ def run():
                 # Execute callback
                 if 'exec' in value and value['exec']:
                     logger.info("Running command: %s", value['exec'])
-                    subprocess.call(value['exec'], shell=True)
+                    retcode = subprocess.call(value['exec'], shell=True)
+                    if retcode != 0:
+                        logger.warning("Command exited with code %d", retcode)
 
         except Exception as e:
             logger.exception(e)
