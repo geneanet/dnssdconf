@@ -61,7 +61,7 @@ def get_instance(instance):
         raise
 
 
-def generate_config(instances, template):
+def generate_config(instances, template, encoding='ascii'):
     """ Get services instances and render the template """
 
     instances_data = {}
@@ -76,7 +76,7 @@ def generate_config(instances, template):
 
     # Load template
     try:
-        tpl = Template(filename=template)
+        tpl = Template(filename=template, input_encoding=encoding, output_encoding=encoding)
     except Exception:
         logger.error('Unable to load template %s', template)
         raise
@@ -136,12 +136,17 @@ def run():
         try:
             logger.debug("Generating conf for %s", item)
 
+            if 'encoding' in value and value['encoding']:
+                encoding = value['encoding']
+            else:
+                encoding = 'ascii'
+
             # Generate the config from the template
             if value['template'][0] == '/':
                 template = value['template']
             else:
                 template = args.templatesdir + '/' + value['template']
-            conf_new = generate_config(value['service_instances'], template)
+            conf_new = generate_config(value['service_instances'], template, encoding)
 
             # Load the old config if it exists
             try:

@@ -26,7 +26,7 @@ __dnssdconf__ [--logfile LOGFILE] [--loglevel {debug,info,warning,error,critical
 Arguments :
 * __--logfile__ : Log file
 * __--loglevel__ : Log level, choose between the following values :debug,info,warning,error,critical,fatal
-* __--logconfig__ : Logging configuration file (overrides --loglevel and --logfile). File format is described at https://docs.python.org/2/library/logging.config.html#logging-config-fileformat
+* __--logconfig__ : Logging configuration file (overrides --loglevel and --logfile). File format is described at https://docs.python.org/2/library/logging.config.html#logging-config-fileformat.
 * __--config__ : Config file, describing which files to generate and what DNS-SD services to fetch (default: /etc/dnssdconf/dnssdconf).
 * __--templatesdir__ : Default templates directory (default: /etc/dnssdconf/template)
 * __--diff__ : Show diff when files are updated (loglevel info)
@@ -38,6 +38,7 @@ Each file can have several properties :
 * __template__ : path to the template. If it does not begin with a /, it is considered to be relative to the path specified with the _--templatesdir_ CLI option.
 * __output__ : path to the output file. It it does not begin with a /, it is considered to be relative to the current working directory.
 * __exec__ : command to be executed after the file is updated (only if the content has changed). The command is passed to a shell.
+* __encoding__ : set th eencoding of the template and output file. Default is _ascii_. Supported values are described at https://docs.python.org/2/library/codecs.html#standard-encodings.
 
 ### Example:
 
