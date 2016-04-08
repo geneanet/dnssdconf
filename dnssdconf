@@ -100,6 +100,7 @@ def run():
     parser.add_argument('--config', nargs='?', default='/etc/dnssdconf/dnssdconf.yml', help='Config file')
     parser.add_argument('--templatesdir', nargs='?', default='/etc/dnssdconf/templates', help='Default templates dir')
     parser.add_argument('--diff', dest='diff', default=False, action='store_true', help='Show diff when files are updates (loglevel info)')
+    parser.add_argument('--backup', nargs='?', default=None, help='Backup files with this suffix')
     parser.add_argument('--noop', dest='noop', default=False, action='store_true', help='Do not write files, only pretend to')
     args = parser.parse_args()
 
@@ -168,6 +169,10 @@ def run():
                     logger.info("Diff:\n%s", diff)
 
                 if not args.noop:
+                    if args.backup:
+                        with open(value['output'] + args.backup, 'w') as f:
+                            f.write(conf_old)
+
                     with open(value['output'], 'w') as f:
                         f.write(conf_new)
 
