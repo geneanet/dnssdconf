@@ -30,6 +30,9 @@ Arguments :
 * __--config__ : Config file, describing which files to generate and what DNS-SD services to fetch (default: /etc/dnssdconf/dnssdconf).
 * __--templatesdir__ : Default templates directory (default: /etc/dnssdconf/template)
 * __--diff__ : Show diff when files are updated (loglevel info)
+* __--backup [suffix]__ : Backup files with this suffix
+* __--noop__ : Do not write files, only pretend to
+* __--allowemptyconf__ : Do not emit a warning if dnssdconf config file is emty
 
 ## Config file
 The config file is a YAML file of which each main element is the description of a file to generate.
