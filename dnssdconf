@@ -102,6 +102,7 @@ def run():
     parser.add_argument('--diff', dest='diff', default=False, action='store_true', help='Show diff when files are updates (loglevel info)')
     parser.add_argument('--backup', nargs='?', default=None, help='Backup files with this suffix')
     parser.add_argument('--noop', dest='noop', default=False, action='store_true', help='Do not write files, only pretend to')
+    parser.add_argument('--allowemptyconf', dest='allowemptyconf', default=False, action='store_true', help='Do not emit a warning if dnssdconf config file is emty')
     args = parser.parse_args()
 
     # Logging
@@ -134,7 +135,8 @@ def run():
         exit(1)
 
     if not local_config:
-        logger.warning('Config file seems empty !')
+        if not args.allowemptyconf :
+            logger.warning('Config file seems empty !')
         exit(0)
 
     # For each config to generate
