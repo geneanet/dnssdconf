@@ -162,7 +162,7 @@ def run():
             if conf_new == conf_old:
                 logger.debug("Nothing to change in file %s", value['output'])
             else:
-                logger.info("Writing new version of file %s", value['output'])
+                logger.info("New version of file %s should be written", value['output'])
 
                 if args.diff:
                     diff = '\n'.join(unified_diff(conf_old.splitlines(), conf_new.splitlines(), lineterm='', fromfile=value['output'], tofile=value['output'] + '.new'))
@@ -170,9 +170,11 @@ def run():
 
                 if not args.noop:
                     if args.backup:
+                        logger.info("Backing up file %s to %s", value['output'], value['output'] + args.backup)
                         with open(value['output'] + args.backup, 'w') as f:
                             f.write(conf_old)
 
+                    logger.info("Writing new version of file %s", value['output'])
                     with open(value['output'], 'w') as f:
                         f.write(conf_new)
 
