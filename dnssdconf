@@ -133,6 +133,10 @@ def run():
         logger.exception(e)
         exit(1)
 
+    if not local_config:
+        logger.warning('Config file seems empty !')
+        exit(0)
+
     # For each config to generate
     for (item, value) in local_config.items():
         try:
