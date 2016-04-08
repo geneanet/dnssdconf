@@ -100,6 +100,7 @@ def run():
     parser.add_argument('--config', nargs='?', default='/etc/dnssdconf/dnssdconf.yml', help='Config file')
     parser.add_argument('--templatesdir', nargs='?', default='/etc/dnssdconf/templates', help='Default templates dir')
     parser.add_argument('--diff', dest='diff', default=False, action='store_true', help='Show diff when files are updates (loglevel info)')
+    parser.add_argument('--noop', dest='noop', default=False, action='store_true', help='Do not write files, only pretend to')
     args = parser.parse_args()
 
     # Logging
@@ -166,15 +167,16 @@ def run():
                     diff = '\n'.join(unified_diff(conf_old.splitlines(), conf_new.splitlines(), lineterm='', fromfile=value['output'], tofile=value['output'] + '.new'))
                     logger.info("Diff:\n%s", diff)
 
-                with open(value['output'], 'w') as f:
-                    f.write(conf_new)
+                if not args.noop:
+                    with open(value['output'], 'w') as f:
+                        f.write(conf_new)
 
-                # Execute callback
-                if 'exec' in value and value['exec']:
-                    logger.info("Running command: %s", value['exec'])
-                    retcode = subprocess.call(value['exec'], shell=True)
-                    if retcode != 0:
-                        logger.warning("Command exited with code %d", retcode)
+                    # Execute callback
+                    if 'exec' in value and value['exec']:
+                        logger.info("Running command: %s", value['exec'])
+                        retcode = subprocess.call(value['exec'], shell=True)
+                        if retcode != 0:
+                            logger.warning("Command exited with code %d", retcode)
 
         except Exception as e:
             logger.exception(e)
