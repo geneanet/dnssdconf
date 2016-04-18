@@ -29,6 +29,10 @@ class Server():
 
 def get_instance(instance, resolve_names=False):
     """ Return the instance of a given service, identified by its DNS adress <instance>.<service>.<domain>. """
+
+    if resolve_names not in (False, True, 'any', 'both', 'ipv4', 'ipv6'):
+        raise ValueError('resolve_names must be False, True, any, both, ipv4 or ipv6')
+
     try:
         # Query DNS
         try:
@@ -64,15 +68,26 @@ def get_instance(instance, resolve_names=False):
         # Resolve names if requested
         if resolve_names:
             for server in servers:
-                try:
-                    server.ipv4 = dns.resolver.query(server.hostname, 'A')[0]
-                except dns.resolver.NoAnswer:
-                    server.ipv4 = None
+                if resolve_names in (True, 'any', 'both', 'ipv4'):
+                    try:
+                        server.ipv4 = dns.resolver.query(server.hostname, 'A')[0]
+                    except dns.resolver.NoAnswer:
+                        server.ipv4 = None
 
-                try:
-                    server.ipv6 = dns.resolver.query(server.hostname, 'AAAA')[0]
-                except dns.resolver.NoAnswer:
-                    server.ipv6 = None
+                if resolve_names in (True, 'any', 'both', 'ipv6'):
+                    try:
+                        server.ipv6 = dns.resolver.query(server.hostname, 'AAAA')[0]
+                    except dns.resolver.NoAnswer:
+                        server.ipv6 = None
+
+                if resolve_names in (True, 'any') and (not server.ipv4 and not server.ipv6):
+                    raise dns.resolver.NoAnswer('No A or AAAA record found for server %s' % server.hostname)
+
+                if resolve_names in ('both', 'ipv4') and not server.ipv4:
+                    raise dns.resolver.NoAnswer('No A record found for server %s' % server.hostname)
+
+                if resolve_names in ('both', 'ipv6') and not server.ipv6:
+                    raise dns.resolver.NoAnswer('No AAAA record found for server %s' % server.hostname)
 
         # Sort records
         servers = sorted(servers, key=attrgetter('hostname', 'priority', 'weight', 'port'))
@@ -80,6 +95,9 @@ def get_instance(instance, resolve_names=False):
         return Instance(servers, config)
     except dns.resolver.NXDOMAIN:
         logger.error('Domain %s not found', instance)
+        raise
+    except dns.resolver.NoAnswer as exception:
+        logger.error(str(exception))
         raise
 
 
