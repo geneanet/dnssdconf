@@ -9,17 +9,26 @@ import argparse
 import dns.exception
 from operator import attrgetter
 from mako.template import Template
-from collections import namedtuple
 from difflib import unified_diff
 
 logger = logging.getLogger('dnssdconf')
 
+class Instance():
+    def __init__(self, servers, config):
+        self.servers = servers
+        self.config = config
 
-def get_instance(instance):
+class Server():
+    def __init__(self, port, priority, hostname, weight, ipv4=None, ipv6=None):
+        self.port = port
+        self.priority = priority
+        self.hostname = hostname
+        self.weight = weight
+        self.ipv4 = ipv4
+        self.ipv6 = ipv6
+
+def get_instance(instance, resolve_names=False):
     """ Return the instance of a given service, identified by its DNS adress <instance>.<service>.<domain>. """
-    Instance = namedtuple('Instance', ['servers', 'config'])
-    Server = namedtuple('Server', ['port', 'priority', 'hostname', 'weight'])
-
     try:
         # Query DNS
         try:
@@ -52,6 +61,19 @@ def get_instance(instance):
             weight=rdata.weight
         ) for rdata in records_srv]
 
+        # Resolve names if requested
+        if resolve_names:
+            for server in servers:
+                try:
+                    server.ipv4 = dns.resolver.query(server.hostname, 'A')[0]
+                except dns.resolver.NoAnswer:
+                    server.ipv4 = None
+
+                try:
+                    server.ipv6 = dns.resolver.query(server.hostname, 'AAAA')[0]
+                except dns.resolver.NoAnswer:
+                    server.ipv6 = None
+
         # Sort records
         servers = sorted(servers, key=attrgetter('hostname', 'priority', 'weight', 'port'))
 
@@ -61,7 +83,7 @@ def get_instance(instance):
         raise
 
 
-def generate_config(instances, template, encoding='ascii'):
+def generate_config(instances, template, encoding='ascii', resolve_names=False):
     """ Get services instances and render the template """
 
     instances_data = {}
@@ -69,7 +91,7 @@ def generate_config(instances, template, encoding='ascii'):
     # Get instances data (servers, config)
     for (service, name) in instances.items():
         try:
-            instances_data[service] = get_instance(name)
+            instances_data[service] = get_instance(name, resolve_names)
         except Exception:
             logger.error('Unable to get service %s instance(s)', service)
             raise
@@ -149,12 +171,17 @@ def run():
             else:
                 encoding = 'ascii'
 
+            if 'resolve_names' in value and value['resolve_names']:
+                resolve_names = value['resolve_names']
+            else:
+                resolve_names = False
+
             # Generate the config from the template
             if value['template'][0] == '/':
                 template = value['template']
             else:
                 template = args.templatesdir + '/' + value['template']
-            conf_new = generate_config(value['service_instances'], template, encoding)
+            conf_new = generate_config(value['service_instances'], template, encoding, resolve_names)
 
             # Load the old config if it exists
             try:

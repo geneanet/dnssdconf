@@ -41,7 +41,8 @@ Each file can have several properties :
 * __template__ : path to the template. If it does not begin with a /, it is considered to be relative to the path specified with the _--templatesdir_ CLI option.
 * __output__ : path to the output file. It it does not begin with a /, it is considered to be relative to the current working directory.
 * __exec__ : command to be executed after the file is updated (only if the content has changed). The command is passed to a shell.
-* __encoding__ : set th eencoding of the template and output file. Default is _ascii_. Supported values are described at https://docs.python.org/2/library/codecs.html#standard-encodings.
+* __encoding__ : set the encoding of the template and output file. Default is _ascii_. Supported values are described at https://docs.python.org/2/library/codecs.html#standard-encodings.
+* __resolve_names__ : resolve names pointed by SRV records. Defaults to false.
 
 ### Example:
 
@@ -66,6 +67,8 @@ A service instance has two properties :
     * port
     * priority
     * weight
+    * ipv4 (defined if resolve_names is enabled and an A record exists for the server)
+    * ipv6 (defined if resolve_names is enabled and an AAAA record exists for the server)
 * __config__ : a dictionary representing the instance properties, as defined in the TXT record associated with the service instance.
 
 Example (for a haproxy configuration file, as the one in the example above) :
